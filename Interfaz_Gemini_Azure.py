@@ -56,23 +56,7 @@ class VentanaPrincipal:
             return False
      
             
-    def html_to_docx(self, text, output_path):
-        # Verificar si el archivo ya existe
-        original_output_path = output_path
-        counter = 1
-        while os.path.exists(output_path):
-            # Si el archivo ya existe, agregar un número al final del nombre
-            output_path = original_output_path.replace('.docx', f'_{counter}.docx')
-            counter += 1
-
-        # Crear un nuevo documento de Word
-        doc = Document() 
-        text_content = html2text.html2text(text) 
-        doc.add_paragraph(text_content) 
-        doc.save(output_path) 
-        print(f'Documento Word guardado en: {output_path}')
-
-
+   
     def hablar(self,texto):
         console = Console()
         syntax = Syntax(texto, "html", theme="monokai", line_numbers=True)
@@ -80,7 +64,7 @@ class VentanaPrincipal:
 
         #Azure-2                    AQUI Tu KEY DE AZURE
         
-        speech_config = speechsdk.SpeechConfig(subscription=' Tu api Key de azure ', region="brazilsouth")
+        speech_config = speechsdk.SpeechConfig(subscription=' Tu Key de Azure', region="brazilsouth")
         audio_config = speechsdk.audio.AudioOutputConfig(use_default_speaker=True) 
         speech_config.speech_synthesis_voice_name='es-EC-AndreaNeural' #definimos la voz a utilizar
         speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
@@ -101,7 +85,7 @@ class VentanaPrincipal:
                 
         #GEMINI-2                       AQUI Tu KEY DE GOOGLE
         
-        GOOGLE_API_KEY=' tu api key '
+        GOOGLE_API_KEY=' Tu key de google'
         genai.configure(api_key=GOOGLE_API_KEY)
         #
     
@@ -198,8 +182,8 @@ class VentanaPrincipal:
             try:
                 response = chat.send_message(mensaje).text 
                 print(response)  
-                self.hablarpy(response)
-                #html_to_docx(response, "respuestas/texto_escanneado.docx")
+                self.hablar(response)
+                #self.html_to_docx(response, "respuestas/texto_escanneado.docx")
                      
                 self.resultado_label.config(text=response)  
                 entrada.focus_set() 
@@ -220,6 +204,10 @@ class VentanaPrincipal:
         # messagebox.showinfo("Foto", "Lógica de la Foto")
         ventana_foto = tk.Toplevel(self.master)
         ventana_foto.title("Prompt con Foto")
+
+        # Crear el botón "Guardar Documento"
+        #boton_guardar = tk.Button(ventana_foto, text="Guardar Documento", command=self.guardar_documento, bg='#333333', fg='#ffffff', width=20, height=2)
+        #boton_guardar.pack()
 
         # Obtener el tamaño de la pantalla principal
         ancho_pantalla = self.master.winfo_screenwidth()
@@ -253,7 +241,7 @@ class VentanaPrincipal:
             img_pil = Image.open(img_bytes)
 
             # Puedes mostrar la imagen si lo deseas
-            #img_pil.show()
+            img_pil.show()
             
             camara.release()
 
@@ -285,7 +273,34 @@ class VentanaPrincipal:
         self.resultado_label.pack() 
 
 
-        def mostrar_resultado_foto(mensaje):   
+        def mostrar_resultado_foto(mensaje):
+            def html_to_docx(text):
+                # Carpeta donde se guardarán los documentos
+                folder_path = "respuestas"
+                if not os.path.exists(folder_path):
+                    os.makedirs(folder_path)
+
+                # Nombre base del archivo
+                base_name = "respuesta"
+
+                # Extensión del archivo
+                file_extension = ".docx"
+
+                # Verificar si el archivo ya existe
+                counter = 1
+                output_path = os.path.join(folder_path, f"{base_name}{counter}{file_extension}")
+
+                while os.path.exists(output_path):
+                    # Si el archivo ya existe, incrementar el contador y probar con un nuevo nombre
+                    counter += 1
+                    output_path = os.path.join(folder_path, f"{base_name}{counter}{file_extension}")
+
+                # Crear un nuevo documento de Word
+                doc = Document()
+                text_content = html2text.html2text(text)
+                doc.add_paragraph(text_content)
+                doc.save(output_path)
+                print(f'Documento Word guardado en: {output_path}')
             foto =tomar_foto()  
             print(" mensaje ",mensaje)  
             print(" foto ",foto)   
@@ -303,17 +318,20 @@ class VentanaPrincipal:
                 if response.candidates[0].content.parts : 
                     testo= response.candidates[0].content.parts[0].text
                     self.resultado_label.config(text=testo)
-                    self.hablarpy(testo)
+                    self.hablar(testo)
+                    self.doc_text = testo 
                     try:
-                        self.html_to_docx(response, "respuestas/respuesta.docx")
+                    # Guardar el documento y obtener la ruta del archivo
+                        html_to_docx(testo) 
                     except Exception as e:
-                        print('Error al guardar!')    
+                        print('Error al guardar!') 
+                        print(f'{type(e).__name__}: {e}')     
                 else: 
                     try:  
                         a=response.text
-                        self.html_to_docx(response, "respuestas/respuesta.docx")
+                        html_to_docx(a)
                         self.resultado_label.config(text=a)
-                        self.hablarpy(a) 
+                        self.hablar(a) 
 
                     except Exception as e:
                         print(f'{type(e).__name__}: {e}')    
